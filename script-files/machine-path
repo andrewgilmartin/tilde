@@ -1,0 +1,6 @@
+#!/bin/bash
+
+for e in "$@"
+do
+	echo "$(hostname -s):$(cd $(dirname $e); pwd)/$(basename $e)"
+done
