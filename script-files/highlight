@@ -1,0 +1,43 @@
+#!/usr/bin/perl -w
+
+use Term::ANSIColor;
+
+my @watches = ();
+
+while ( @ARGV ) {
+	my $arg = shift @ARGV;
+	if ( $arg eq '-p' ) {
+		my $pattern = shift @ARGV;
+		my $color = shift @ARGV;
+		my $watch = {
+			pattern => $pattern,
+			color_on => color($color),
+			color_off => color('reset')
+		};
+		push( @watches, $watch );
+	}
+	elsif ( $arg =~ /^-/ ) {
+		print STDERR "usage: $0 [ -p <regex> <color(s)> ]... [ <regex> ]...\n";
+		exit(1);
+	}
+	else {
+		my $watch = {
+			pattern => $arg,
+			color_on => color('reverse'),
+			color_off => color('reset')
+		};
+		push( @watches, $watch );
+	}
+}
+
+while ( <> ) {
+	for my $watch ( @watches ) {
+		s/($watch->{pattern})/$watch->{color_on}$1$watch->{color_off}/g;
+	}
+	print $_;
+}
+
+sub DUMP {
+	use Data::Dumper;
+	print Dumper( @_ );
+}

@@ -1,0 +1,61 @@
+#!/bin/bash -eE
+
+# A script to fix the access control list for every directory and file
+# in the file system tree rooted at this script's directory. The default
+# action is to set the file system element to be owened by $U:$G and for
+# everyone to have read access and for directories to have read and 
+# listing access.
+#
+# If a subdirectory contains a FIX_ACL script then it is used to set the
+# access control losts for that file system branch.
+#
+
+shopt -s nullglob dotglob
+
+ROOT=$(cd $(dirname $0); pwd)
+U=qs
+G=qs
+
+while getopts "u:g:rh?" OPT
+do
+	case $OPT in
+		u)
+			U=$OPTARG
+			;;
+		g)
+			G=$OPTARG
+			;;
+		r)
+			ROOT=$OPTARG
+			;;
+		*)
+			echo "usage: $(basename $0) -u user -g group -r root-directory"
+			exit 1
+			;;
+	esac
+done
+
+function fix_acl() {
+	for f in $*
+	do
+		echo "Fixing $f"
+		chown $U:$G $f
+		chmod a+rw $f
+		if [ -d $f ]
+		then
+			if [ -x $f/FIX_ACL ]
+			then
+				echo "Using $f/FIX_ACL"
+				$f/FIX_ACL
+			else
+				chmod a+x $f
+				fix_acl $f/*
+			fi
+		fi
+	done
+}
+
+
+fix_acl $ROOT/*
+
+# END 

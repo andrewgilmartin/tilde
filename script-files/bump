@@ -1,0 +1,24 @@
+#!/bin/bash
+
+for f in $*
+do
+	if [ $(expr $f : '.*~[0-9][0-9][0-9]' ) -eq 0 ]
+	then
+		ORIGINAL=$f
+		N=0
+		COPY=$(printf '%s~%3.3d' $ORIGINAL $N)
+		while [ -e $COPY ]
+		do
+			N=$(expr $N + 1)
+			COPY=$(printf '%s~%3.3d' $ORIGINAL $N)
+		done
+		if [ -d $ORIGINAL ]
+		then
+			tar -zcf $COPY $ORIGINAL
+		else
+			cp -p $ORIGINAL $COPY
+		fi
+		chmod a-w $COPY
+		echo $COPY
+	fi
+done

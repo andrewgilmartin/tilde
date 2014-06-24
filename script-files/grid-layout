@@ -1,0 +1,41 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+my @rows = ();
+while ( <> ) {
+	chomp;
+	push( @rows, [ split( /\t/, $_ ) ] );
+}
+
+my @max_widths = ();
+my @numbers_only = ();
+for my $row ( @rows ) {
+	# find maximum width for each column
+	my @widths = map { length($_); } @$row;
+	for ( my $i = 0; $i < @widths; $i++ ) {
+		$max_widths[$i] = $widths[$i] if $widths[$i] > ( $max_widths[$i] || 0 );
+	}
+	# track if column only contains (integer) numbers
+	my @numbers = map { /^-?\d+$/ ? 1 : 0; } @$row;
+	for ( my $i = 0; $i < @numbers; $i++ ) {
+		$numbers_only[$i] ||= $numbers[$i];
+		$numbers_only[$i] &&= $numbers[$i];
+	}
+}
+
+for my $row ( @rows ) {
+	for ( my $i = 0; $i < @$row; $i++ ) {
+		printf( "%*s | ", 
+			$numbers_only[$i] ? $max_widths[$i] : -$max_widths[$i], 
+			$row->[$i] );
+	}
+	printf("\n");
+}
+
+sub DUMP {
+	use Data::Dumper;
+	print Dumper( \@_ );
+}
+
+# END

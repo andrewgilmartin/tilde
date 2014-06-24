@@ -1,0 +1,19 @@
+#!/usr/bin/perl -w
+
+my @t = ();
+
+my $t = undef;
+while ( <> ) {
+	if ( /^"/ ) { # start of thread stack trace
+		if ( defined $t ) {
+			push( @t, $t );
+			$t = undef;
+		}
+		$t .= $_;
+	}
+	elsif ( /org\.crossref/ ) { # our code
+		$t .= $_;
+	}
+}
+
+print sort @t;

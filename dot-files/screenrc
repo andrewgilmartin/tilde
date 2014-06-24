@@ -1,0 +1,7 @@
+hardstatus alwayslastline "%w %= %H "
+
+defscrollback 10000
+
+multiuser on
+
+# END

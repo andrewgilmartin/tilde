@@ -1,0 +1,5 @@
+#!/bin/bash
+
+find $(perl -e 'print "@INC"') -name \*.pm | grep "$@"
+
+# END

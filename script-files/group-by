@@ -1,0 +1,24 @@
+#!/usr/bin/perl
+
+use strict;
+
+my $column = ( shift @ARGV ) - 1;
+my %groups = ();
+
+while ( <> ) {
+   chomp $_; # remove new line
+   s/^\s+//; # remove leading space
+   s/\s+$//; # remove trailing space
+   my @columns = split(/\s+/, $_ );
+   my $group = $columns[$column];
+   push( 
+      @{$groups{$group}}, 
+      join( ' ', @columns[0..$column-1], @columns[$column+1..$#columns] )
+   );
+}
+
+while ( my ( $group, $values ) = each %groups )  { 
+   print "$group @{$values}\n";
+} 
+
+# END

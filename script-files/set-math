@@ -1,0 +1,287 @@
+#!/usr/bin/perl -w
+
+package Set;
+
+use strict;
+
+sub new {
+  my ( $class, $source, $values ) = @_;
+  my $self = {
+    source => $source,
+    values => ( $values || [] ),
+  };
+  bless( $self, $class );
+}
+
+sub copy {
+  my ( $self ) = @_;
+  my $r = new Set( "( dup $self->{source} )", [ @{ $self->{values} } ] );
+  return $r;
+}
+
+sub size {
+  my ( $self ) = @_;
+  return scalar @{ $self->{values} };
+}
+
+sub values {
+  my ( $self ) = @_;
+  return @{ $self->{values} };
+}
+
+sub or {
+  my ( $self, $other ) = @_;
+  my %r = map { ( $_ => 1 ) } ( @{ $self->{values} }, @{ $other->{values} } );
+  my $r = new Set( "( $self->{source} or $other->{source} )", [ keys %r ] );
+  return $r;
+}
+
+sub and {
+  my ( $self, $other ) = @_;
+  my %b = map { ( $_ => 1 ) } @{ $other->{values} };
+  my @r = grep { exists $b{$_} } @{ $self->{values} };
+  my $r = new Set( "( $self->{source} and $other->{source} )", [ @r ] );
+  return $r;
+}
+
+sub xor {
+  my ( $self, $other ) = @_;
+  my %a = map { ( $_ => 1 ) } @{ $self->{values} };
+  my %b = map { ( $_ => 1 ) } @{ $other->{values} };
+  my $values = [];
+  push( @$values, grep { ! exists $b{$_} } @{ $self->{values} } );
+  push( @$values, grep { ! exists $a{$_} } @{ $other->{values} } );
+  my $r = new Set( "( $self->{source} xor $other->{source} )", $values );
+  return $r;
+}
+
+sub sub {
+  my ( $self, $other ) = @_;
+  my %r = map { ( $_ => 1 ) } @{ $self->{values} };
+  for my $e ( @{ $other->{values} } ) {
+    delete $r{$e};
+  }
+  my $r = new Set( "( $self->{source} sub $other->{source} )", [ keys %r ] );
+  return $r;
+}
+
+1;
+
+package main;
+
+use strict;
+
+my $set_count = 0;
+
+my @stack = ();
+
+while ( @ARGV ) {
+  my $arg = shift @ARGV;
+  my $close_marker = $arg eq '{' ? '}' : $arg eq '(' ? ')' : $arg eq '[' ? ']' : undef;
+  if ( defined $close_marker ) {
+    my %values = ();
+    while ( @ARGV ) {
+      $arg = shift @ARGV;
+      last if $arg eq $close_marker;
+      $values{$arg} = 1;
+    }
+    my $set = new Set( sprintf( "cmd-line-%4.4d", ++$set_count ), [ keys %values ] );
+    push( @stack, $set );
+  }
+  elsif ( $arg eq '--or' || $arg eq '-o' ) {
+    die "or needs two sets on the top of the stack" unless @stack >= 2;
+    my $b = pop @stack;
+    my $a = pop @stack;
+    my $r = $a->or( $b );
+    push( @stack, $r );
+  }
+  elsif ( $arg eq '--xor' || $arg eq '-x' ) {
+    die "xor needs two sets on the top of the stack" unless @stack >= 2;
+    my $b = pop @stack;
+    my $a = pop @stack;
+    my $r = $a->xor( $b );
+    push( @stack, $r );
+  }
+  elsif ( $arg eq '--and' || $arg eq '-a' ) {
+    die "and needs two sets on the top of the stack" unless @stack >= 2;
+    my $b = pop @stack;
+    my $a = pop @stack;
+    my $r = $a->and( $b );
+    push( @stack, $r );
+  }
+  elsif ( $arg eq '--sub' || $arg eq '-s' ) {
+    die "sub needs two sets on the top of the stack" unless @stack >= 2;
+    my $b = pop @stack;
+    my $a = pop @stack;
+    my $r = $a->sub( $b );
+    push( @stack, $r );
+  }
+  elsif ( $arg eq '--print' || $arg eq '-p' ) {
+    die "print needs one set on the top of the stack" unless @stack >= 1;
+    print "{ ", join( " ", sort { $a cmp $b } $stack[ $#stack ]->values() ), " }";
+  }
+  elsif ( $arg eq '--printf' && @ARGV ) {
+    die "printf needs one set on the top of the stack" unless @stack >= 1;
+    my $format = shift @ARGV;
+    printf( $format, $_ ) foreach sort { $a cmp $b } $stack[ $#stack ]->values();
+  }
+  elsif ( $arg eq '--swap' ) {
+    die "swap needs two sets on the top of the stack" unless @stack >= 2;
+    my $b = pop @stack;
+    my $a = pop @stack;
+    push( @stack, $b );
+    push( @stack, $a );
+  }
+  elsif ( $arg eq '--pop' || $arg eq '-p' ) {
+    die "pop needs one set on the top of the stack" unless @stack >= 1;
+    my $a = pop @stack;
+  }
+  elsif ( $arg eq '--dup' || $arg eq '-d' ) {
+    die "dup needs one set on the top of the stack" unless @stack >= 1;
+    my $r = $stack[ $#stack ]->copy(); 
+    push( @stack, $r );
+  }
+  elsif ( $arg eq '--count' || $arg eq '-c' ) {
+    die "count needs one set on the top of the stack" unless @stack >= 1;
+    print $stack[ $#stack ]->size(), "\n";
+  }
+  elsif ( $arg eq '--dump' ) {
+    DUMP( \@stack );
+  }
+  elsif ( ( $arg =~ /^(.*?):(\d+)$/ || $arg =~ /^(.*?):(\d+):(.*)$/ ) && -r $1 ) {
+    my $filename = $1;
+    my $column = $2;
+    my $delimiter = $3 || '\\s+';
+    if ( $filename eq '-' ? *IN = $STDIN : open( IN, $filename ) ) {
+      my %values = ();
+      while ( <IN> ) {
+        chomp;
+	$_ = (split( /$delimiter/, $_ ))[$column];
+        $values{$_} = 1;
+      }
+      close( IN );
+      my $set = new Set( $arg, [ keys %values ] );
+      push( @stack, $set );
+    }
+    else {
+      fatal( "unable to open input file \"$filename\"" );
+    }
+  }
+  elsif ( -r $arg || $arg eq "-" ) {
+    if ( -d $arg ) {
+      if ( opendir( IN, $arg ) ) {
+        my $values = [ grep { ! /^\./ && -f $_ } readdir( IN ) ];
+        closedir( IN );
+        my $set = new Set( $arg, $values );
+        push( @stack, $set );
+      }
+      else {
+        fatal( "unable to open input directory \"$arg\"" );
+      }
+    }
+    else {
+      if ( open( IN, $arg ) ) {
+        my %values = ();
+        while ( <IN> ) {
+          chomp;
+          $values{$_} = 1;
+        }
+        close( IN );
+        my $set = new Set( $arg, [ keys %values ] );
+        push( @stack, $set );
+      }
+      else {
+        fatal( "unable to open input file \"$arg\"" );
+      }
+    }
+  }
+  else {
+    if ( $arg ne '-help' && $arg ne '-h' ) {
+      print STDERR "unknown command line option \"$arg\"\n";
+    }
+    print STDERR qq~\
+usage: $0 <expression>
+
+    Setcalc is a simple stack-machine for performing set calculations
+    The operations are
+
+    <set-1> <set-2> --and/-a   -> <set-3> # what elements do set-1 and set-2 have in common
+    <set-1> <set-2> --or/-o    -> <set-3> # all the elements from set-1 and set-2
+    <set-1> <set-2> --xor/-x   -> <set-3> # what elements do set-1 and set-2 not have in common
+    <set-1> <set-2> --sub/-s   -> <set-3> # remove elements in set-2 from set-1
+
+    <set-1> <set-2> --swap  -> <set-2> <set-1> # swap set-1 and set-2
+    <set-1>         --dup   -> <set-1> <set-1> # duplicate set-1
+    <set-1>         --pop   -> # removes the top set from the stack
+
+    <set-1>         --count/-c -> # prints the size of the set
+
+    <set-1>         --print/-p -> # prints the top set
+    <set-1>         --printf <format> -> # prints the top set using the given format to 
+                                         # present each element
+
+    { <element-1> <element-2> .. <element-N> } -> <set-1>
+    [ <element-1> <element-2> .. <element-N> ] -> <set-1>
+    ( <element-1> <element-2> .. <element-N> ) -> <set-1>
+
+    <filename> -> <set-1> # set of lines (including leading and trailing whitespace)
+
+    <filename>:N[:delimiter] -> <set-1> # set of values from Nth column (columns are 
+                                        # separated by whitespace or given delimiter)
+
+    <directory>  -> <set-1> # set of file names
+
+    Note that bash allows for "process substitution" which results in a readable file. So, 
+    for example, the following will output directories in X that are not in Y.
+
+    set-math <(find X -type d | xargs basename) <(find Y -type d | xargs basename) -s
+
+~;
+    exit( 1 );
+  }
+}
+
+if ( @stack ) {
+  map { print "$_\n" } sort { $a cmp $b } $stack[ $#stack ]->values();
+}
+
+sub set_or {
+  my ( $a, $b ) = @_;
+  my %r = map { ( $_ => 1 ) } ( @$a, @$b );
+  my $r = [ keys %r ];
+  return $r;
+}
+
+sub set_and {
+  my ( $a, $b ) = @_;
+  my %b = map { ( $_ => 1 ) } @$b;
+  my $r = [ grep { exists $b{$_} } @$a ];
+  return $r;
+}
+
+sub set_xor {
+  my ( $a, $b ) = @_;
+  my %a = map { ( $_ => 1 ) } @$a;
+  my %b = map { ( $_ => 1 ) } @$b;
+  my $r = [];
+  push( @$r, grep { ! exists $b{$_} } @$a );
+  push( @$r, grep { ! exists $a{$_} } @$b );
+  return $r;
+}
+
+sub set_sub {
+  my ( $a, $b ) = @_;
+  my %a = map { ( $_ => 1 ) } @$a;
+  for my $e ( @$b ) {
+    delete $a{$e};
+  }
+  my $r = [ keys %a ];
+  return $r;
+}
+
+sub DUMP {
+  use Data::Dumper;
+  print Dumper( @_ );
+}
+
+# END

@@ -1,0 +1,45 @@
+#!/bin/bash -e
+
+PS_OPTS=${PS_OPTS:- -A -o pid,command}
+
+INTERACIVE=false
+DRY_RUN=false
+
+while [ 0 -ne $(expr $1 : '\-') ]
+do
+  case "$1" in
+    -i) INTERACIVE=true ;;
+    -n) DRY_RUN=true ;;
+    -h) echo "usage: killmatching [-in] [kill-options] pattern1 pattern2 ... patternN" ; exit ;;
+    *) KILL_OPTS="$KILL_OPTS $1" ;;
+  esac
+  shift 1
+done
+
+exec 4<&0
+
+for PATTERN in "$@"
+do
+  ps $PS_OPTS \
+    | grep -v -F grep \
+    | grep -v -F "$0" \
+    | grep -e "$PATTERN" \
+    | while read PID COMMAND
+  do
+    if $INTERACIVE
+    then
+      read -u 4 -p "kill $PID $COMMAND? (y/N) " choice
+      if [ "$choice" == "Y" -o "$choice" == "y" ]
+      then
+        kill $KILL_OPTS $PID
+      fi
+    elif $DRY_RUN
+    then
+      echo "kill $KILL_OPTS $PID $COMMAND"
+    else
+      kill $KILL_OPTS $PID
+    fi
+  done
+done
+
+# END

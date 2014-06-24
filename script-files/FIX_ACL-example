@@ -1,0 +1,17 @@
+#!/bin/bash -e
+
+echo 1. Keep a copy of this file in the directory tree that is to be fixed.
+echo 2. Replace the default USER and GROUP variables
+echo 3. Delete these lines!
+exit 1
+
+ROOT=$(cd $(dirname $0); pwd)/
+
+USER=${1:-tomcat}
+GROUP=${2:-tomcat}
+
+chown -R $USER:$GROUP $ROOT
+chmod -R a+r,g+rws $ROOT
+find $ROOT -type d -exec chmod a+x {} \;
+
+# END 

@@ -1,0 +1,30 @@
+#!/bin/bash
+
+if [ $# -eq 0 -o "$1" == "--help" ]
+then
+	echo "usage: $(basename $0) [ options ] pid"
+	exit 1
+fi
+
+PID=$1
+shift 1
+
+JSTACK=$JAVA_HOME/bin/jstack
+ 
+if [ -r /proc/$PID/cmdline ]
+then
+	BIN_HOME=$(dirname $(strings /proc/$PID/cmdline | head -1))
+	if [ $BIN_HOME != "." ]
+	then
+		JSTACK=$BIN_HOME/jstack
+	fi
+fi
+
+if [ $(id -u) -eq 0 ]
+then
+	sudo -u tomcat $JSTACK "$@" $PID >$PID.jstack
+else
+	$JSTACK "$@" $PID >$PID.jstack
+fi
+
+# END

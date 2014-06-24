@@ -1,0 +1,84 @@
+#!/usr/bin/perl -w
+
+use strict;
+use DateTime;
+
+my %M = ( 
+	'y' => 'years', 'Y' => 'years', 
+	'm' => 'months', 
+	'd' => 'days', 'D' => 'days', 
+	'h' => 'hours', 'H' => 'hours', 
+	'm' => 'minutes', 
+	's' => 'seconds', 'S' => 'seconds',
+);
+
+my %S = ( 
+	'y' => 'year', 'Y' => 'year', 
+	'm' => 'month', 
+	'd' => 'day', 'D' => 'day', 
+	'h' => 'hour', 'H' => 'hour', 
+	'm' => 'minute', 
+	's' => 'second', 'S' => 'second',
+);
+
+my $F = '%Y-%m-%d %H:%M:%S';
+
+my $tz = DateTime::TimeZone->new( name => 'local' );
+
+my $d = DateTime->now( time_zone => $tz );
+
+while ( @ARGV ) {
+	$_ = shift @ARGV;
+	if ( /^(\d\d\d\d)-(\d\d)-(\d\d) (\d\d):(\d\d):(\d\d)$/ ) {
+		$d = DateTime->new(
+			year => $1,
+			month => $2,
+			day => $3,
+			hour => $4,
+			minute => $5,
+			second => $6,
+			time_zone => $tz
+		);
+	}
+	elsif ( /^([-+=]?)(\d+)-(\d+)-(\d+)$/ ) {
+		$d = 
+			$1 eq "+" ? $d->add( years => $2, months => $3, days => $4 ) :
+			$1 eq "-" ? $d->subtract( years => $2, months => $3, days => $4 ) :
+			$d->set( year => $2, month => $3, day => $4 );
+	}
+	elsif ( /^([-+=]?)(\d+):(\d+):(\d+)$/ ) {
+		$d = 
+			$1 eq "+" ? $d->add( hours => $2, minutes => $3, seconds => $4 ) :
+			$1 eq "-" ? $d->subtract( hours => $2, minutes => $3, seconds => $4 ) :
+			$d->set( hour => $2, minute => $3, second => $4 );
+	}
+	elsif ( /^([-+=]?)(\d+)([yYmdDhHMsS])$/ ) {
+		$d = 
+			$1 eq "+" ? $d->add( $M{$3} => $2 ) :
+			$1 eq "-" ? $d->subtract( $M{$3} => $2 ) :
+			$d->set( $S{$3} => $2 );
+	}
+	elsif ( /^=(\d+)$/ ) {
+		$d = DateTime->from_epoch( epoch => $1 );
+		if ( $d->year > 9999 ) {
+			$d = DateTime->from_epoch( epoch => int( $1 / 1000 ) );
+		}
+	}
+	elsif ( $_ eq "--print" || $_ eq "-p" ) {
+		print $d->strftime( $F ), "\n";
+	}
+	elsif ( $_ eq "--format" || $_ eq "-f" ) {
+		$F = shift @ARGV;
+	}
+	else {
+		if ( $_ ne "--help" && $_ ne "-h" ) {
+			print STDERR "unknown argument format \"$_\"\n";
+		}
+		print "usage: date-math [ --help | -h ] ( [ --format strftime-format | -f strftime-format ] [ --print | -p ] [ [+-=]YYYY-MM-DD | [+-=]HH:MM:SS | [+-=]number[ymdHMS] | =milliseconds ] )...\n";
+		exit(1);
+	}
+}
+
+print $d->strftime( $F ), "\n";
+
+# END

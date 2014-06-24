@@ -1,0 +1,46 @@
+#!/usr/bin/perl -w
+
+use strict;
+
+# usage findre <directory>... -name <regex> -type ( f | d )
+
+my $pattern = undef;
+my $type = undef;
+my @directories = ();
+
+while ( @ARGV ) {
+	my $arg = shift @ARGV;
+	if ( '-name' eq $arg ) {
+		$pattern = shift @ARGV;
+	}
+	elsif ( '-type' eq $arg ) {
+		$type = shift @ARGV;
+	}
+	else {
+		push( @directories, $arg );
+	}
+}
+
+while ( @directories ) {
+	my $directory = shift @directories;
+	if ( opendir( my $dh, $directory ) ) {
+		while(readdir $dh) {
+			next if $_ eq '.' || $_ eq '..';
+			my $path = "$directory/$_";
+			my $print = ! defined $pattern || /$pattern/;
+			$print = defined $type 
+				? 
+					( $type eq 'f' && -f $path ) || 
+					( $type eq 'd' && -d $path ) || 
+					0 
+				: 
+					$print;
+
+			print "$directory/$_\n" if $print;
+			push( @directories, $path ) if -d $path;
+		}
+		closedir $dh;
+	}
+}
+
+# END

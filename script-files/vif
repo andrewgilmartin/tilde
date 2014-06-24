@@ -1,0 +1,20 @@
+#!/bin/bash
+
+case $# in
+2)
+        PATTERN=$1
+        DIR=$2
+        ;;
+1)
+        PATTERN=$1
+        DIR=.
+        ;;
+*)
+        echo "usage: $(basename $0) file-name-pattern [ directory ]"
+        exit 1
+        ;;
+esac
+
+vi $(find $DIR -name $PATTERN -type f)
+
+# END

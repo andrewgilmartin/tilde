@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ $# -lt 2 ]
+then
+	echo "usage: $(basename $0) pattern directory..."
+	exit 1
+fi
+
+PATTERN=$1
+shift 1
+
+for j in $(find $* -name \*.jar)
+do
+   jar -tf $j | perl -ne "print \"$j:\$_\n\" if /$PATTERN/";
+done
+
+# END
