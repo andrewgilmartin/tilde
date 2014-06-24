@@ -1,14 +1,20 @@
 #!/usr/bin/perl -w
 
+# Script to create an HTML encoded calendar of several contiguous weeks 
+# starting from the current week.
+#
+# usage: printable-calendar > calendar.html
+
 use strict;
 use DateTime;
 
 my $tz = DateTime::TimeZone->new( name => 'local' );
 
+#my $date = DateTime->new( year => 2014, month => 6, day => 22, time_zone => $tz );
+
 my $date = DateTime->now( time_zone => $tz )->set( hour => 0, minute => 0, second => 0 );
 $date->add( days => - $date->day_of_week  ) if $date->day_of_week != 7;
 
-#my $date = DateTime->new( year => 2014, month => 6, day => 22, time_zone => $tz );
 my $weeks = 16;
 
 my $page = qq~
@@ -29,6 +35,7 @@ my $page = qq~
                     }
 
                     tr {
+                    	/* does not work as of 2014-06 but perhaps it will soon */
                         page-break-inside:avoid;
                         page-break-after:auto
                     }
