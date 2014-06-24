@@ -1,0 +1,82 @@
+#!/usr/bin/perl -w
+
+# Join the contents of two or more files and present it as a table
+#
+#     usage: join3 [ -n ] file1 file2 .. fileN
+#
+# Presents the contents of two or more files as a table where each file's
+# lines are sorted into rows and placed in a column. Where the same line
+# is found in two or more files then that line will be placed on the same
+# row. For example, this command lines creates 5 files of numbers with some
+# overlapping values:
+#
+#     join3 -n <(seq 1 10) <(seq 3 6) <(seq 6 12) <(seq 5 15)
+#
+# The output is
+#
+#     /dev/fd/63 /dev/fd/62 /dev/fd/61 /dev/fd/60
+#      1 -  -  -
+#      2 -  -  -
+#      3 3  -  -
+#      4 4  -  -
+#      5 5  -  5
+#      6 6  6  6
+#      7 -  7  7
+#      8 -  8  8
+#      9 -  9  9
+#     10 - 10 10
+#      - - 11 11
+#      - - 12 12
+#      - -  - 13
+#      - -  - 14
+#      - -  - 15
+#
+
+use strict;
+
+sub max { return $_[0] > $_[1] ? $_[0] : $_[1]; }
+
+# assume textual lines
+my $compare = sub { $a cmp $b };
+my $alignment = -1;
+if ( @ARGV && $ARGV[0] eq "-n" ) {
+        # lines are numbers
+	shift @ARGV;
+	$compare = sub { $a <=> $b };
+	$alignment = 1;
+}
+
+my %F = (); # files
+my %K = (); # keys (aka lines)
+my %W = (); # key widths
+
+for my $file ( @ARGV ) {
+	$F{$file} = scalar %F;
+	if ( open( IN, $file ) ) {
+		while ( <IN> ) {
+			chomp $_;
+			$K{$_} ||= {};
+			$K{$_}->{$file} = 1;
+			$W{$file} = exists $W{$file} ? max( length( $_ ), $W{$file} ) : length( $_ );
+
+		}
+		close( IN );
+	}
+}
+
+# print header
+for my $file ( @ARGV ) {
+	printf( "%*s ", -$W{$file}, $file );
+}
+print "\n";
+
+# print table
+for my $v ( sort $compare keys %K ) {
+	my $V = $K{$v};
+	for my $file ( @ARGV ) {
+		printf( "%*s ", $alignment * $W{$file}, exists $V->{$file} ? $v : "-" );
+	}
+	print "\n";
+}
+
+# END
