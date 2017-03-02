@@ -3,7 +3,7 @@
 use strict;
 use DateTime;
 
-my $svn_url='svn+ssh://inf4/home/svn/crossref-repository/crossref/branches';
+my $svn_url='svn+ssh://.../branches';
 
 my $stop = DateTime->today();
 my $start = $stop->clone()->subtract( days => shift @ARGV || 90 );
