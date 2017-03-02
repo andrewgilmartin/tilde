@@ -12,19 +12,20 @@ my %W = (); # week days
 my %D = (); # dates
 my %U = (); # users
 
+# initialize the dates and the weekdays hashs with days between the start and stop dates
 for ( my $next = $start->clone(); $next->compare($stop) <= 0; $next->add( days => 1) ) {
 	my $F = $next->strftime('%Y-%m-%d');
 	$D{$F} = {};
 	$W{$F} = $next->day_of_week();
 }
 
+# collect the svn usage data
 if ( open( IN, "svn log --revision \{$start\}:\{$stop\} $svn_url |" ) ) {	
 	while( <IN> ) {
 		if ( /\| (.*?) \| (\d\d\d\d-\d\d-\d\d) / ) {
 			my $u = $1;
 			my $d = $2;
 			if ( defined $D{$d} ) {
-				$D{$d} ||= {};
 				$D{$d}->{$u} += 1;
 				$U{$u} = 1;
 			}
@@ -36,6 +37,7 @@ if ( open( IN, "svn log --revision \{$start\}:\{$stop\} $svn_url |" ) ) {
 my @d = sort keys %D;
 my ( $l ) = reverse sort { $a <=> $b } map { length($_); } keys %U; # max user length
 
+# output the chart
 for my $u ( sort keys %U ) {
 	printf( "%*s %s | ", -$l, $u, $d[0] );
 	for my $d ( @d ) {
@@ -44,17 +46,11 @@ for my $u ( sort keys %U ) {
 	printf( " | %s\n", $d[$#d] );
 }
 
+# output the line of mondays
 printf( "%*s %*s | ", -$l, "", length($d[0]), "" );
 for my $d ( @d ) {
 	print $W{$d} == 1 ? "M" : " ";
 }
 printf( " |\n" );
-
-# DONE
-
-sub DUMP {
-	use Data::Dumper;
-	print Dumper(@_);
-}
 
 # END
