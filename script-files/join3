@@ -7,7 +7,7 @@
 # Presents the contents of two or more files as a table where each file's
 # lines are sorted into rows and placed in a column. Where the same line
 # is found in two or more files then that line will be placed on the same
-# row. For example, this command lines creates 5 files of numbers with some
+# row. For example, this command lines creates 4 files of numbers with some
 # overlapping values:
 #
 #     join3 -n <(seq 1 10) <(seq 3 6) <(seq 6 12) <(seq 5 15)
