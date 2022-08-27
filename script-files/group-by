@@ -2,10 +2,12 @@
 
 use strict;
 
-my $delimiter = "\t";
+my $column_delimiter = "\t";
 my @compare_indexes = (0);
 my @show_indexes = ();
 my $show_tsv = 0;
+my $show_group = 1;
+my $show_delimiter = " ";
 my $show_unique = 0;
 my $show_duplicates = 0;
 my @files = ();
@@ -13,7 +15,10 @@ my $debug = 0;
 
 while ( my $arg = shift @ARGV ) {
 	if ( "-d" eq $arg ) {
-		$delimiter = shift @ARGV;
+		$column_delimiter = shift @ARGV;
+	}
+	elsif ( "-D" eq $arg ) {
+		$show_delimiter = shift @ARGV;
 	}
 	elsif ( "-g" eq $arg ) {
 		@compare_indexes = map { $_ - 1 } split(',', shift @ARGV);
@@ -30,16 +35,21 @@ while ( my $arg = shift @ARGV ) {
 	elsif ( "-u" eq $arg ) {
 		$show_unique = 1;
 	}
+	elsif ( "-G" eq $arg ) {
+		$show_group = 0;
+	}
 	elsif ( "--debug" eq $arg ) {
 		$debug = 1;
 	}
 	elsif ( $arg =~ /^-/ ) {
 		print "usage: group-by -d delimiter -g list -s list -u -U -t file...\n";
-		print "-g group by given column indexes, eg -g 1,2\n";
-		print "-s show given column indexes, eg -s 2,7\n";
+		print "-d character that separeates data columns in files. Default is tab.\n";
+		print "-g group by given column indexes, eg \"-g 1,2\". Default is 1.\n";
+		print "-s show given column indexes, eg \"-s 2,7\". Default is all.";
 		print "-u show only groups with one value\n";
 		print "-U show only groups with more than one value\n";
 		print "-t show group and values on one line with tab separated values\n";
+		
 		exit(1);
 	}
 	else {
@@ -54,9 +64,9 @@ for my $file ( @files ) {
 	open(my $handle, $file) || die "unable to open file '$file'";
 	while ( <$handle> ) {
 		chomp $_; # remove new line
-		s/^\s+//; # remove leading space
-		s/\s+$//; # remove trailing space
-		my @columns = split($delimiter, $_ );
+		#s/^\s+//; # remove leading space
+		#s/\s+$//; # remove trailing space
+		my @columns = split($column_delimiter, $_ );
 		my $group = join(' ', map { $columns[$_] || '' } @compare_indexes);
 		my $show = @show_indexes ? join(' ', map { $columns[$_] || '' } @show_indexes) : $_;
 		push( @{$groups{$group}}, $show );
@@ -76,7 +86,8 @@ for my $group ( sort keys %groups ) {
 	next if $show_unique && @values != 1;
 	next if $show_duplicates && @values == 1;
 	if ( $show_tsv ) {
-		print $group, "\t", join("\t", @values), "\n";
+		print $group, "\t" if $show_group;
+		print join($show_delimiter, @values), "\n";
 	}
 	else {
 		print "--- ", $group, "\n";
@@ -87,3 +98,20 @@ for my $group ( sort keys %groups ) {
 } 
 
 # END
+
+__END__
+
+Place the following in the file /tmp/example and run these commands to see how group-by works
+
+1 a b d
+2 a b e
+3 a b d
+4 a c e
+5 a c d
+
+group-by -g 1 /tmp/example
+group-by -g 1,3 /tmp/example
+group-by -g 1 -s 2,4 /tmp/example
+group-by -g 1,3 -s 2,4 /tmp/example
+
+
