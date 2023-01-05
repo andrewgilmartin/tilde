@@ -1,0 +1,33 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Date::Parse;
+
+for my $file ( @ARGV ) {
+	open(IN, "keytool -list -v -keystore '$file' -storepass changeit --storetype jks 2>/dev/null |") || die "unable to open $file";
+	
+	my $now = time();
+	my $count = 0;
+	my $found = 0;
+	my $name = undef;
+	my $expiration = undef;
+
+	while ( <IN> ) {
+		$count = $1 if /^Your keystore contains (\d+) entries/;
+		$name = $1 if /^Alias name: (.*)/;
+		$expiration = $1 if /^Valid from: .* until: (.*)/;
+		if ( $name && $expiration ) {
+			my $status = str2time($expiration) < $now ? "expired" : "current";
+			print "$name\t$expiration\t$status\n";
+			$name = $expiration = undef;
+			$found += 1;
+		}
+	}
+	if ( $count ne $found ) {
+		print "expected $count but found $found\n";
+	}
+
+	close(IN);
+}
+
+# END
