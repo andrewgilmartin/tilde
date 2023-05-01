@@ -13,9 +13,12 @@ my $tz = DateTime::TimeZone->new( name => 'local' );
 #my $date = DateTime->new( year => 2014, month => 6, day => 22, time_zone => $tz );
 
 my $date = DateTime->now( time_zone => $tz )->set( hour => 0, minute => 0, second => 0 );
+
+# set date to previous Sunday if today is not Sunday
 $date->add( days => - $date->day_of_week  ) if $date->day_of_week != 7;
 
-my $weeks = 16;
+my $weeks = 53 - $date->week_number();
+#my $weeks = 16;
 
 my $page = qq~
 <html>

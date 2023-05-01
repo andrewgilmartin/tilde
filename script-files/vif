@@ -1,20 +1,18 @@
 #!/bin/bash
 
-case $# in
-2)
-        PATTERN=$1
-        DIR=$2
-        ;;
-1)
-        PATTERN=$1
-        DIR=.
-        ;;
-*)
-        echo "usage: $(basename $0) file-name-pattern [ directory ]"
-        exit 1
-        ;;
-esac
+DIR="."
+if [ -d "$1" ]; then
+	DIR=$(realpath $1)
+	shift 1
+fi
 
-vi $(find $DIR -name $PATTERN -type f)
+FIND="find $DIR -type f -and ( -name $1" 
+shift 1
+for f in $*; do
+   FIND="$FIND -or -name $f" 
+done
+FIND="$FIND )"
+
+vi $($FIND)
 
 # END
