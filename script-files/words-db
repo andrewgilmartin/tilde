@@ -1,0 +1,29 @@
+#!/bin/bash
+
+DB=$HOME/.words
+
+words_build() {
+	rm -f $DB
+	sqlite3 $DB <<EOH
+	create table words (
+    		word string primary key
+	);
+.import /usr/share/dict/words words
+EOH
+}
+
+words_pair() {
+	sqlite3 $DB <<EOH
+	select group_concat(word,'-') from ( select word from words order by random() limit 2 )
+EOH
+}
+
+case "$1" in
+	build) words_build ;;
+	pair) words_pair ;;
+	*)
+		echo "usage: $(basename $0) [ build | pair ]"
+		exit 1
+esac
+
+# END
