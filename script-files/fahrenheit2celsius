@@ -1,0 +1,23 @@
+#!/usr/bin/perl -w
+
+use POSIX qw(round);
+use utf8;
+
+binmode(STDOUT, ":encoding(UTF-8)");
+
+my $FORMAT="%i\N{U+B0}F %i\N{U+B0}C\n";
+
+foreach ( @ARGV ) {
+	if ( /(\d+)c/i ) {
+		my $c = $1;
+		my $f = ($c * 9.0/5.0) + 32;
+		printf( $FORMAT, round($f), $c );
+	}
+	elsif ( /(\d+)f/i || /(\d+)/ ) {
+		my $f = $1;
+		my $c = ($f - 32) * 5.0/9.0;
+		printf( $FORMAT, $f, round($c) );
+	}
+}
+
+# END
