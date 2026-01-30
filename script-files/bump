@@ -12,19 +12,19 @@ do
 	then
 		ORIGINAL=$(realpath $f)
 		N=0
-		COPY=$(printf '%s~%3.3d' $ORIGINAL $N)
-		while [ -e $COPY ]
+		COPY=$(printf '%s~%3.3d' "$ORIGINAL" "$N")
+		while [ -e "$COPY" ]
 		do
 			N=$(expr $N + 1)
-			COPY=$(printf '%s~%3.3d' $ORIGINAL $N)
+			COPY=$(printf '%s~%3.3d' "$ORIGINAL" "$N")
 		done
-		if [ -d $ORIGINAL ]
+		if [ -d "$ORIGINAL" ]
 		then
-			tar -C $(dirname $ORIGINAL) -zcf $COPY $(basename $ORIGINAL)
+			tar -C "$(dirname $ORIGINAL)" -zcf "$COPY" "$(basename $ORIGINAL)"
 		else
-			cp -p $ORIGINAL $COPY
+			cp -p "$ORIGINAL" "$COPY"
 		fi
-		chmod $CHMOD $COPY
-		echo $COPY
+		chmod $CHMOD "$COPY"
+		echo "$COPY"
 	fi
 done
