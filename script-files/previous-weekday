@@ -1,0 +1,27 @@
+#!/bin/bash
+
+if [ $(uname) == "Darwin" ]; then
+    # Get the day of the week (0=Sunday, 1=Monday, ..., 6=Saturday)
+    dow=$(date "+%w")
+
+    if [[ $dow -eq 1 ]]; then
+        # Today is Monday (1), go back 3 days to Friday
+        prev_weekday=$(date -v -3d "+%Y-%m-%d")
+    elif [[ $dow -eq 0 ]]; then
+        # Today is Sunday (0), go back 2 days to Friday
+        prev_weekday=$(date -v -2d "+%Y-%m-%d")
+    else
+        # Any other weekday, go back 1 day
+        prev_weekday=$(date -v -1d "+%Y-%m-%d")
+    fi
+else
+    if [[ $(date +%u) -eq 1 ]]; then
+        # Today is Monday (1), go back 3 days to Friday
+        prev_weekday=$(date --date="3 days ago" +%Y-%m-%d)
+    else
+        # Today is not Monday, go back 1 day
+        prev_weekday=$(date --date="1 day ago" +%Y-%m-%d)
+    fi
+fi
+
+echo $prev_weekday
